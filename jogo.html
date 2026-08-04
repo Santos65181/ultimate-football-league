@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ultimate Football League</title>
+    
+    <link rel="icon" type="image/png" href="/imagens/logo/logo.png">
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            outline: none;
+        }
+        body {
+            background-color: #222;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        /* --- ESTILOS DO JOGO --- */
+        #tempo-jogo {
+            color: #ffda79;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        #placar {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .time-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .escudo-img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+        .score {
+            font-size: 22px;
+            color: #fff;
+        }
+
+        canvas {
+            background-color: #4CAF50;
+            border: 4px solid white;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+            max-width: 100%;
+            max-height: 55vh;
+        }
+
+        #controles {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            padding: 10px 30px;
+            margin-top: 10px;
+        }
+        #joystick-area {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            position: relative;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #joystick-stick {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+        #btn-chute {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: #ff4757;
+            border: 3px solid white;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+        }
+        #btn-chute:active {
+            background: #ff6b81;
+            transform: scale(0.95);
+        }
+
+        /* --- TELA DE FIM DE JOGO --- */
+        #tela-fim-de-jogo {
+            display: none;
+            width: 100%;
+            max-width: 380px;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 15px;
+        }
+
+        .confronto {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .time-fim {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100px;
+        }
+
+        .escudo-fim {
+            width: 55px;
+            height: 55px;
+            object-fit: contain;
+            margin-bottom: 6px;
+        }
+
+        .nome-fim {
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            color: #ddd;
+        }
+
+        .trofeu-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .trofeu {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+        }
+
+        .placar-texto-fim {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffda79;
+            margin-bottom: 15px;
+        }
+
+        .marcadores {
+            font-size: 15px;
+            color: #ccc;
+            line-height: 1.6;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .btn-reiniciar {
+            width: 100%;
+            padding: 12px;
+            background: #ff6b81;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .btn-reiniciar:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="tempo-jogo"><span id="periodo">T1</span> <span id="timer">00:00</span></div>
+
+    <div id="placar">
+        <div class="time-info">
+            <img id="escudo-a" class="escudo-img" src="" alt="">
+            <span id="nome-a">Time A</span>
+        </div>
+        <span class="score"><span id="score-a">0</span> x <span id="score-b">0</span></span>
+        <div class="time-info">
+            <span id="nome-b">Time B</span>
+            <img id="escudo-b" class="escudo-img" src="" alt="">
+        </div>
+    </div>
+
+    <canvas id="campo" width="300" height="450"></canvas>
+
+    <div id="controles">
+        <div id="joystick-area">
+            <div id="joystick-stick"></div>
+        </div>
+        <button id="btn-chute">CHUTAR</button>
+    </div>
+
+    <div id="tela-fim-de-jogo">
+        <div class="confronto">
+            <div class="time-fim">
+                <img id="fim-escudo-a" class="escudo-fim" src="" alt="Time A">
+                <span id="fim-nome-a" class="nome-fim">Time A</span>
+            </div>
+
+            <div class="trofeu-box">
+                <img src="/imagens/trophies/superior_player_of_the_match.png" alt="Troféu" class="trofeu">
+            </div>
+
+            <div class="time-fim">
+                <img id="fim-escudo-b" class="escudo-fim" src="" alt="Time B">
+                <span id="fim-nome-b" class="nome-fim">Time B</span>
+            </div>
+        </div>
+
+        <div class="placar-texto-fim">
+            <span id="fim-gols-a">0</span> x <span id="fim-gols-b">0</span>
+        </div>
+        
+        <div class="marcadores">
+            <p id="txt-gols-a"></p>
+            <p id="txt-gols-b"></p>
+        </div>
+
+        <button class="btn-reiniciar" onclick="voltarMenu()">VOLTAR AO MENU</button>
+    </div>
+
+    <script>
+        
+        const socket = io();
+        const nomeJogador = localStorage.getItem('nomeJogador') || "Você";
+
+        const canvas = document.getElementById('campo');
+        const ctx = canvas.getContext('2d');
+
+        let meuNumJogador = 1;
+        let timeA = null, timeB = null;
+
+        
+        socket.on('entrou_na_sala', (dados) => {
+            meuNumJogador = dados.numJogador;
+            timeA = dados.timeA;
+            timeB = dados.timeB;
+
+            document.getElementById('nome-a').innerText = timeA.nome;
+            document.getElementById('escudo-a').src = timeA.logo;
+            document.getElementById('nome-b').innerText = timeB.nome;
+            document.getElementById('escudo-b').src = timeB.logo;
+
+            socket.emit('registrar_nome', nomeJogador);
+        });
+
+        socket.on('sala_cheia', () => {
+            alert("A sala já está cheia!");
+            voltarMenu();
+        });
+
+        function voltarMenu() {
+            window.location.href = "menu.html";
+        }
+
+        
+        const joyArea = document.getElementById('joystick-area');
+        const joyStick = document.getElementById('joystick-stick');
+        let joyVector = { x: 0, y: 0 };
+        let joyTouchId = null;
+
+        function handleJoyMove(clientX, clientY) {
+            const rect = joyArea.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            let dx = clientX - centerX;
+            let dy = clientY - centerY;
+            const maxRadius = rect.width / 2;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance > maxRadius) {
+                dx = (dx / distance) * maxRadius;
+                dy = (dy / distance) * maxRadius;
+            }
+
+            joyStick.style.transform = `translate(${dx}px, ${dy}px)`;
+            joyVector.x = dx / maxRadius;
+            joyVector.y = dy / maxRadius;
+        }
+
+        function resetJoystick() {
+            joyTouchId = null;
+            joyVector = { x: 0, y: 0 };
+            joyStick.style.transform = 'translate(0px, 0px)';
+        }
+
+        window.addEventListener('touchstart', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                const rect = joyArea.getBoundingClientRect();
+
+                if (joyTouchId === null &&
+                    touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                    
+                    joyTouchId = touch.identifier;
+                    handleJoyMove(touch.clientX, touch.clientY);
+                }
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (joyTouchId === null) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === joyTouchId) {
+                    handleJoyMove(touch.clientX, touch.clientY);
+                }
+            }
+        });
+
+        window.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joyTouchId) resetJoystick();
+            }
+        });
+
+        window.addEventListener('touchcancel', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === joyTouchId) resetJoystick();
+            }
+        });
+
+        let isMouseDown = false;
+        joyArea.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            handleJoyMove(e.clientX, e.clientY);
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (isMouseDown) handleJoyMove(e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', () => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                resetJoystick();
+            }
+        });
+
+        
+        const btnChute = document.getElementById('btn-chute');
+        function chutarBola() {
+            socket.emit('chutar');
+        }
+
+        btnChute.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            chutarBola();
+        });
+        btnChute.addEventListener('mousedown', chutarBola);
+
+        
+        setInterval(() => {
+            if (joyVector.x !== 0 || joyVector.y !== 0) {
+                socket.emit('mover', joyVector);
+            }
+        }, 1000 / 60);
+
+        
+        socket.on('atualizar_estado', (estado) => {
+            
+            const min = String(Math.floor(estado.tempoSegundos / 60)).padStart(2, '0');
+            const seg = String(estado.tempoSegundos % 60).padStart(2, '0');
+            document.getElementById('timer').innerText = `${min}:${seg}`;
+            document.getElementById('periodo').innerText = `T${estado.periodo}`;
+            document.getElementById('score-a').innerText = estado.golsA;
+            document.getElementById('score-b').innerText = estado.golsB;
+
+            
+            ctx.fillStyle = "#4CAF50";
+            ctx.fillRect(0, 0, 300, 450);
+
+            
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 225); ctx.lineTo(300, 225);
+            ctx.arc(150, 225, 35, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.fillRect(100, 0, 100, 15);
+            ctx.fillRect(100, 435, 100, 15);
+
+            
+            Object.values(estado.jogadores).forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 11, 0, Math.PI * 2);
+                ctx.fillStyle = p.num === 1 ? (timeA ? timeA.cor : '#EF0107') : (timeB ? timeB.cor : '#004D98');
+                ctx.fill();
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = "white";
+                ctx.font = "bold 11px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(p.nome, p.x, p.y - 16);
+            });
+
+            
+            ctx.beginPath();
+            ctx.arc(estado.bola.x, estado.bola.y, estado.bola.raio, 0, Math.PI * 2);
+            ctx.fillStyle = "white";
+            ctx.fill();
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        });
+
+        socket.on('fim_de_jogo', (estado) => {
+            document.getElementById('campo').style.display = 'none';
+            document.getElementById('controles').style.display = 'none';
+            document.getElementById('placar').style.display = 'none';
+            document.getElementById('tempo-jogo').style.display = 'none';
+
+            if (timeA && timeB) {
+                document.getElementById('fim-escudo-a').src = timeA.logo;
+                document.getElementById('fim-nome-a').innerText = timeA.nome;
+                document.getElementById('fim-escudo-b').src = timeB.logo;
+                document.getElementById('fim-nome-b').innerText = timeB.nome;
+            }
+
+            document.getElementById('fim-gols-a').innerText = estado.golsA;
+            document.getElementById('fim-gols-b').innerText = estado.golsB;
+
+            const listaP = Object.values(estado.jogadores);
+            const p1 = listaP.find(p => p.num === 1);
+            const p2 = listaP.find(p => p.num === 2);
+
+            document.getElementById('txt-gols-a').innerText = `${p1 ? p1.nome : 'P1'} (${timeA ? timeA.nome : 'Time A'}): ${estado.golsA} gol(s)`;
+            document.getElementById('txt-gols-b').innerText = `${p2 ? p2.nome : 'P2'} (${timeB ? timeB.nome : 'Time B'}): ${estado.golsB} gol(s)`;
+
+            document.getElementById('tela-fim-de-jogo').style.display = 'flex';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ultimate Football League</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            outline: none;
+        }
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .perfil-box {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+
+        .perfil-box input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #555;
+            color: white;
+            padding: 8px 0;
+            font-size: 16px;
+            width: 180px;
+        }
+
+        .historico-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            font-weight: bold;
+        }
+
+        .vitorias { color: #2ed573; }
+        .derrotas { color: #ff4757; }
+        .empates  { color: #ffa502; }
+
+        .btn-jogar {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 14px 32px;
+            background-color: #ff6b81;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-jogar:active {
+            transform: scale(0.95);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="perfil-box">
+        <input type="text" id="nome-jogador" placeholder="Seu nome..." value="Jogador">
+    </div>
+
+    <div class="historico-box">
+        <div class="vitorias">Vitórias: <span id="val-vitorias">0</span></div>
+        <div class="derrotas">Derrotas: <span id="val-derrotas">0</span></div>
+        <div class="empates">Empates: <span id="val-empates">0</span></div>
+    </div>
+
+    <button class="btn-jogar" onclick="iniciarJogo()">JOGAR</button>
+
+    <script>
+        function iniciarJogo() {
+            const nome = document.getElementById('nome-jogador').value || "Jogador";
+            localStorage.setItem('nomeJogador', nome);
+            window.location.href = "jogo.html";
+        }
+
+        window.onload = function() {
+            const nomeSalvo = localStorage.getItem('nomeJogador');
+            if (nomeSalvo) document.getElementById('nome-jogador').value = nomeSalvo;
+
+            document.getElementById('val-vitorias').innerText = localStorage.getItem('vitorias') || 0;
+            document.getElementById('val-derrotas').innerText = localStorage.getItem('derrotas') || 0;
+            document.getElementById('val-empates').innerText = localStorage.getItem('empates') || 0;
+        };
+    </script>
+
+</body>
+</html>
